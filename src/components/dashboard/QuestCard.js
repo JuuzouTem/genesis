@@ -1,47 +1,38 @@
-import React from 'react';
-import styled from 'styled-components';
+import React, { useState, useEffect, useMemo } from 'react';
+import styled, { css } from 'styled-components';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
 
-const Card = styled.div`
-  background: ${({ theme, isCompleted }) => isCompleted ? 'rgba(0, 148, 50, 0.1)' : theme.colors.surface};
-  border-left: 5px solid ${({ theme, isCompleted }) => isCompleted ? theme.colors.primary : theme.colors.secondary};
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: ${({ theme }) => theme.shadows.card};
-  transition: all 0.3s ease;
-  opacity: ${({ isCompleted }) => isCompleted ? 0.6 : 1};
-  
-  &:hover {
-    transform: translateY(-5px);
-  }
-`;
+// Zamanı parse etmek için yardımcı fonksiyon
+const parseTime = (timeStr) => {
+    const [start, end] = timeStr.split('-');
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
 
-const CardHeader = styled.div`
+    const startTime = new Date();
+    startTime.setHours(startH, startM, 0, 0);
+
+    const endTime = new Date();
+    endTime.setHours(endH, endM, 0, 0);
+    
+    return { startTime, endTime };
+};
+
+// ... Stil tanımlamaları (Card, Title vs.) ...
+const TimerContainer = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.colors.textSecondary};
   margin-bottom: 1rem;
 `;
 
-const Title = styled.h3`
-  color: ${({ theme }) => theme.colors.text};
-  font-family: ${({ theme }) => theme.fonts.body};
-  font-weight: 600;
-  font-size: 1.2rem;
-`;
-
-const Rewards = styled.div`
-  display: flex;
-  gap: 1rem;
-  font-weight: bold;
-  span {
-    color: ${({ theme }) => theme.colors.secondary};
-  }
-`;
-
-const Description = styled.p`
-  color: ${({ theme }) => theme.colors.textSecondary};
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+// Card stiline yeni durumlar ekleyelim
+const Card = styled.div`
+  /* ... önceki stiller ... */
+  ${({ status }) => {
+    if (status === 'locked') return css`opacity: 0.4; filter: grayscale(80%);`;
+    if (status === 'missed') return css`border-left-color: ${({ theme }) => theme.colors.accent}; opacity: 0.5;`;
+  }}
 `;
 
 const ActionButton = styled.button`
@@ -54,38 +45,77 @@ const ActionButton = styled.button`
   font-family: ${({ theme }) => theme.fonts.headings};
   font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 
   &:hover:not(:disabled) {
     background-color: ${({ theme }) => theme.colors.secondary};
+    box-shadow: 0 0 10px ${({ theme }) => theme.colors.secondary};
   }
   
   &:disabled {
-    background-color: #555;
+    background-color: #444;
+    color: #888;
     cursor: not-allowed;
+    opacity: 0.7;
   }
 `;
 
-function QuestCard({ protocol, onComplete, isCompleted }) {
-  const handleComplete = () => {
-    onComplete(protocol);
-  };
+function formatDuration(seconds) {
+    if (seconds < 0) seconds = 0;
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
 
-  return (
-    <Card isCompleted={isCompleted}>
-        <CardHeader>
-            <Title>{protocol.title}</Title>
-            <Rewards>
-                <span>{protocol.ap} AP</span>
-                <span>{protocol.vk} VK</span>
-            </Rewards>
-        </CardHeader>
-        <Description>{protocol.time}</Description>
-        <ActionButton onClick={handleComplete} disabled={isCompleted}>
-            {isCompleted ? 'VERİ ELDE EDİLDİ' : 'PROTOKOLÜ TAMAMLA'}
-        </ActionButton>
-    </Card>
-  );
+function QuestCard({ protocol, onComplete, isCompleted }) {
+    const currentTime = useCurrentTime();
+    const [taskStartedTime, setTaskStartedTime] = useState(null);
+    const [elapsedTime, setElapsedTime] = useState(0);
+
+    const { startTime, endTime } = useMemo(() => parseTime(protocol.time), [protocol.time]);
+
+    const status = useMemo(() => {
+        if (isCompleted) return 'completed';
+        if (currentTime < startTime) return 'locked';
+        if (currentTime > endTime) return 'missed';
+        return 'available';
+    }, [currentTime, startTime, endTime, isCompleted]);
+
+    useEffect(() => {
+        if (taskStartedTime) {
+            const interval = setInterval(() => {
+                setElapsedTime(Math.floor((new Date() - taskStartedTime) / 1000));
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [taskStartedTime]);
+
+    const handleStart = () => {
+        setTaskStartedTime(new Date());
+        // Denemeler için başladığında tamamlanmış sayılır (seri için)
+        if (protocol.title.includes('SİMÜLASYON')) {
+            onComplete(protocol);
+        }
+    };
+    
+    const timeRemaining = Math.floor((endTime - currentTime) / 1000);
+
+    return (
+        <Card status={status} isCompleted={isCompleted}>
+            {/* ... CardHeader, Description ... */}
+            <TimerContainer>
+                <span>Bitişe Kalan: {formatDuration(timeRemaining)}</span>
+                {taskStartedTime && <span>Geçen Süre: {formatDuration(elapsedTime)}</span>}
+            </TimerContainer>
+
+            {status === 'locked' && <ActionButton disabled>KİLİTLİ (Başlangıç: {protocol.time.split('-')[0]})</ActionButton>}
+            {status === 'available' && !taskStartedTime && <ActionButton onClick={handleStart}>PROTOKOLÜ BAŞLAT</ActionButton>}
+            {status === 'available' && taskStartedTime && !isCompleted && <ActionButton onClick={() => onComplete(protocol)}>PROTOKOLÜ TAMAMLA</ActionButton>}
+            {status === 'completed' && <ActionButton disabled>VERİ ELDE EDİLDİ</ActionButton>}
+            {status === 'missed' && <ActionButton disabled>GÖREV KAÇIRILDI</ActionButton>}
+        </Card>
+    );
 }
 
 export default QuestCard;

@@ -1,10 +1,15 @@
+// src/contexts/UserProgressContext.js
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { allAchievements } from '../data/achievements';
+import { protocols } from '../data/protocols';
 
-const LOCAL_STORAGE_KEY = 'projeGenesisUserProgress';
+const LOCAL_STORAGE_KEY = 'projeGenesisUserProgress_v3'; // Versiyonu artırarak eski verilerle çakışmayı önle
 const UserProgressContext = createContext();
 
 export const useUserProgress = () => useContext(UserProgressContext);
+
+const getFormattedDate = (date) => date.toISOString().split('T')[0];
 
 const LEVEL_THRESHOLDS = [0, 500, 1500, 4000, 8000, 15000, 25000, 40000, 60000, 85000, 120000];
 
@@ -14,7 +19,6 @@ export const UserProgressProvider = ({ children }) => {
       const savedProgress = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (savedProgress) {
         const parsed = JSON.parse(savedProgress);
-        // DÜZELTME: Tüm Set'lerin doğru şekilde yeniden oluşturulması
         return {
           ap: parsed.ap || 0,
           vk: parsed.vk || 0,
@@ -22,49 +26,84 @@ export const UserProgressProvider = ({ children }) => {
           completedProtocols: new Set(parsed.completedProtocols || []),
           purchasedItems: new Set(parsed.purchasedItems || []),
           unlockedAchievements: new Set(parsed.unlockedAchievements || []),
+          streak: parsed.streak || 0,
+          lastStreakUpdate: parsed.lastStreakUpdate || null,
         };
       }
     } catch (error) {
-      console.error("Failed to parse progress from localStorage", error);
+      console.error("localStorage'dan ilerleme verisi okunurken hata oluştu:", error);
     }
-    // DÜZELTME: Başlangıç state'inde tüm alanların olması
     return {
       ap: 0, vk: 0, level: 1,
       completedProtocols: new Set(),
       purchasedItems: new Set(),
       unlockedAchievements: new Set(),
+      streak: 0,
+      lastStreakUpdate: null,
     };
   });
 
   const [notification, setNotification] = useState(null);
 
+  // Günlük seri sıfırlama kontrolü
+  useEffect(() => {
+    const todayStr = getFormattedDate(new Date());
+    if (progress.lastStreakUpdate && progress.lastStreakUpdate !== todayStr) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = getFormattedDate(yesterday);
+      
+      // Eğer son güncelleme dünden daha eskiyse seriyi sıfırla
+      if (progress.lastStreakUpdate !== yesterdayStr) {
+        setProgress(prev => ({ ...prev, streak: 0 }));
+        showNotification("Seri bozuldu! Bugün yeni bir başlangıç yap.");
+      }
+    }
+  }, []); // Sadece uygulama ilk yüklendiğinde çalışır
+
   const showNotification = (message) => {
     setNotification(message);
     setTimeout(() => setNotification(null), 4000);
   };
-  
-  // DÜZELTME: Tek ve birleştirilmiş useEffect
-  useEffect(() => {
-    // 1. Başarımları kontrol et
-    allAchievements.forEach(ach => {
-      if (!progress.unlockedAchievements.has(ach.id) && ach.condition(progress)) {
+
+  const checkDayCompletion = (currentProgress, seasonKey) => {
+    const today = new Date().getDay();
+    const todaysCriticalProtocols = (protocols[seasonKey] || [])
+      .filter(p => (Array.isArray(p.day) ? p.day.includes(today) : p.day === today) && p.isCritical);
+
+    if (todaysCriticalProtocols.length === 0) return;
+
+    const allCriticalCompleted = todaysCriticalProtocols.every(p => currentProgress.completedProtocols.has(p.id));
+
+    const todayStr = getFormattedDate(new Date());
+    if (allCriticalCompleted && currentProgress.lastStreakUpdate !== todayStr) {
+        const newStreak = progress.streak + 1;
         setProgress(prev => ({
             ...prev,
-            unlockedAchievements: new Set(prev.unlockedAchievements).add(ach.id),
+            streak: newStreak,
+            lastStreakUpdate: todayStr,
         }));
+        showNotification(`Seri Devam Ediyor! ${newStreak}. Gün! 🔥`);
+    }
+  };
+
+  useEffect(() => {
+    // Başarımları ve seviye atlamayı kontrol et
+    allAchievements.forEach(ach => {
+      if (!progress.unlockedAchievements.has(ach.id) && ach.condition(progress)) {
+        setProgress(prev => ({ ...prev, unlockedAchievements: new Set(prev.unlockedAchievements).add(ach.id) }));
         showNotification(`Kilometre Taşı Ulaşıldı: ${ach.name}`);
       }
     });
 
-    // 2. Seviye atlamayı kontrol et
     const nextLevelThreshold = LEVEL_THRESHOLDS[progress.level];
     if (nextLevelThreshold && progress.ap >= nextLevelThreshold) {
-        const newLevel = progress.level + 1;
-        setProgress(prev => ({ ...prev, level: newLevel }));
-        showNotification(`YETKİNLİK SEVİYESİ ARTTI! YS ${newLevel}'e ulaştın!`);
+      const newLevel = progress.level + 1;
+      setProgress(prev => ({ ...prev, level: newLevel }));
+      showNotification(`YETKİNLİK SEVİYESİ ARTTI! YS ${newLevel}'e ulaştın!`);
     }
 
-    // 3. localStorage'a kaydet
+    // Veriyi localStorage'a kaydet
     const dataToSave = {
       ...progress,
       completedProtocols: Array.from(progress.completedProtocols),
@@ -74,15 +113,17 @@ export const UserProgressProvider = ({ children }) => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
   }, [progress]);
 
-  // DÜZELTME: Sadece state'i güncelleyen tekil fonksiyonlar
-  const completeProtocol = (protocol) => {
+  const completeProtocol = (protocol, seasonKey) => {
     if (!progress.completedProtocols.has(protocol.id)) {
-      setProgress(prev => ({
-        ...prev,
-        ap: prev.ap + protocol.ap,
-        vk: prev.vk + protocol.vk,
-        completedProtocols: new Set(prev.completedProtocols).add(protocol.id),
-      }));
+      const newProgress = {
+        ...progress,
+        ap: progress.ap + protocol.ap,
+        vk: progress.vk + protocol.vk,
+        completedProtocols: new Set(progress.completedProtocols).add(protocol.id),
+      };
+      setProgress(newProgress);
+      // Not: useEffect'in tetiklenmesini beklemek yerine, güncellenmiş state'i doğrudan yolluyoruz
+      checkDayCompletion(newProgress, seasonKey);
     }
   };
   
@@ -93,7 +134,7 @@ export const UserProgressProvider = ({ children }) => {
         vk: prev.vk - item.cost,
         purchasedItems: new Set(prev.purchasedItems).add(item.id),
       }));
-       showNotification(`${item.name} satın alındı!`);
+      showNotification(`${item.name} satın alındı!`);
     }
   };
 

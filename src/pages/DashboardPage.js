@@ -1,15 +1,27 @@
-import React from 'react';
+// src/pages/DashboardPage.js
+
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import QuestCard from '../components/dashboard/QuestCard';
 import StatusBar from '../components/layout/StatusBar';
 import { protocols } from '../data/protocols';
 import { useUserProgress } from '../contexts/UserProgressContext';
 import { useSeason } from '../hooks/useSeason';
+import { useCurrentTime } from '../hooks/useCurrentTime';
+
+const DashboardWrapper = styled.div`
+  position: relative;
+`;
 
 const DashboardContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 2rem 2rem 2rem;
+  padding: 5rem 2rem 2rem 2rem;
+  
+  /* EKLENECEK YENİ SATIRLAR */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; 
 `;
 
 const Header = styled.header`
@@ -24,48 +36,126 @@ const Header = styled.header`
   }
 `;
 
+const StreakCounter = styled.div`
+  position: absolute;
+  top: -1rem;
+  right: 2.5rem;
+  font-size: 1.5rem;
+  font-family: ${({ theme }) => theme.fonts.headings};
+  color: ${({ theme }) => theme.colors.secondary};
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 10;
+`;
+
 const QuestList = styled.div`
   display: grid;
   gap: 1.5rem;
 `;
 
+const parseTime = (timeStr) => {
+    if (timeStr === 'Tüm Gün') {
+        const startTime = new Date();
+        startTime.setHours(0, 0, 0, 0);
+        const endTime = new Date();
+        endTime.setHours(23, 59, 59, 999);
+        return { startTime, endTime };
+    }
+    const [start, end] = timeStr.split('-');
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+    const startTime = new Date();
+    startTime.setHours(startH, startM, 0, 0);
+    const endTime = new Date();
+    endTime.setHours(endH, endM, 0, 0);
+    return { startTime, endTime };
+};
+
+
 function DashboardPage() {
-  const { completeProtocol, completedProtocols } = useUserProgress();
+  const { completeProtocol, completedProtocols, streak } = useUserProgress();
   const { key: seasonKey, name: seasonName } = useSeason();
+  const currentTime = useCurrentTime();
 
-  const today = new Date().getDay();
-  // DÜZELTME: Pazar günü için dayIndex 0 olmalı, veritabanını ona göre güncelleyeceğiz.
-  const dayIndex = today;
+  const { activeProtocols, upcomingProtocols, missedProtocols, completedTodayProtocols } = useMemo(() => {
+    const today = new Date().getDay();
+    const todaysProtocols = (protocols[seasonKey] || []).filter(p =>
+      Array.isArray(p.day) ? p.day.includes(today) : p.day === today
+    );
 
-  const activeProtocols = protocols[seasonKey] || [];
-  const todaysProtocols = activeProtocols.filter(p => 
-      Array.isArray(p.day) ? p.day.includes(dayIndex) : p.day === dayIndex
-  );
+    const active = [];
+    const upcoming = [];
+    const missed = [];
+    const completed = [];
+
+    todaysProtocols.forEach(p => {
+        if (completedProtocols.has(p.id)) {
+            completed.push(p);
+            return;
+        }
+
+        const { startTime, endTime } = parseTime(p.time);
+        if (currentTime < startTime) {
+            upcoming.push(p);
+        } else if (currentTime > endTime) {
+            missed.push(p);
+        } else {
+            active.push(p);
+        }
+    });
+    
+    return { activeProtocols: active, upcomingProtocols: upcoming, missedProtocols: missed, completedTodayProtocols: completed };
+  }, [seasonKey, currentTime, completedProtocols]);
 
   return (
-    <>
+    <DashboardWrapper>
       <StatusBar />
+      <StreakCounter title={`${streak} Günlük Seri`}>
+        <span>🔥</span>
+        <span>{streak}</span>
+      </StreakCounter>
       <DashboardContainer>
         <Header>
           <h1>Kontrol Paneli</h1>
-          <p>Mevcut Sezon: {seasonName} | Protokoller</p>
+          <p>Mevcut Sezon: {seasonName}</p>
         </Header>
-        <QuestList>
-          {todaysProtocols.length > 0 ? (
-            todaysProtocols.map(protocol => (
-              <QuestCard 
-                key={protocol.id} 
-                protocol={protocol}
-                onComplete={completeProtocol}
-                isCompleted={completedProtocols.has(protocol.id)}
-              />
-            ))
-          ) : (
-            <p>Bugün için planlanmış bir protokol bulunmuyor. Zihinsel Dekontaminasyon için iyi bir gün.</p>
-          )}
-        </QuestList>
+
+        {activeProtocols.length > 0 && (
+          <QuestList>
+            {activeProtocols.map(p => <QuestCard key={p.id} protocol={p} onComplete={() => completeProtocol(p, seasonKey)} isCompleted={completedProtocols.has(p.id)} />)}
+          </QuestList>
+        )}
+
+        {upcomingProtocols.length > 0 && (
+          <>
+            <Header style={{ marginTop: '3rem' }}><h1>Sıradaki Protokoller</h1></Header>
+            <QuestList>
+              {upcomingProtocols.map(p => <QuestCard key={p.id} protocol={p} onComplete={() => completeProtocol(p, seasonKey)} isCompleted={completedProtocols.has(p.id)} />)}
+            </QuestList>
+          </>
+        )}
+        
+        {missedProtocols.length > 0 && (
+          <>
+            <Header style={{ marginTop: '3rem' }}><h1>Telafi Protokolleri</h1><p>Bu görevler seriyi etkilemez.</p></Header>
+            <QuestList>
+              {missedProtocols.map(p => <QuestCard key={p.id} protocol={p} onComplete={() => completeProtocol(p, seasonKey)} isCompleted={completedProtocols.has(p.id)} />)}
+            </QuestList>
+          </>
+        )}
+        
+        {completedTodayProtocols.length > 0 && (
+          <>
+            <Header style={{ marginTop: '3rem' }}><h1>Tamamlanan Protokoller</h1></Header>
+            <QuestList>
+              {completedTodayProtocols.map(p => <QuestCard key={p.id} protocol={p} onComplete={() => completeProtocol(p, seasonKey)} isCompleted={completedProtocols.has(p.id)} />)}
+            </QuestList>
+          </>
+        )}
+
       </DashboardContainer>
-    </>
+    </DashboardWrapper>
   );
 }
 
