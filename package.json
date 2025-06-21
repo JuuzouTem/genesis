@@ -2,6 +2,7 @@
   "name": "proje-genesis",
   "version": "1.0.0",
   "private": true,
+  "homepage": "https://JuuzouTem.github.io/genesis",
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -16,7 +17,7 @@
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
-  },
+},
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -36,6 +37,6 @@
     ]
   },
   "devDependencies": {
-    "gh-pages": "^6.1.1"
+    "gh-pages": "^6.3.0"
   }
 }
