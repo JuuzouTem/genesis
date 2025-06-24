@@ -2,33 +2,32 @@
 
 import { useState, useEffect } from 'react';
 
-// Yeni, kişiselleştirilmiş ve kademeli sezon planı.
-// Tarihler 2025-2026 YKS hazırlık sürecine göre ayarlanmıştır.
+// YKS 2026 SAVAŞ PROTOKOLÜ v.SEN-361 - Sıfırdan Dereceye Göre Fazlar
 const SEASONS = {
   // =========================================================================
-  // FAZ 1: YAZ - "TEMEL ATMA OPERASYONU" (TYT AĞIRLIKLI)
+  // FAZ 1: YAZ - "TEMEL İNŞA OPERASYONU" (TYT AĞIRLIKLI)
   // =========================================================================
-  // FAZ 1A: Adaptasyon & TYT Başlangıç (Alışma ve Temel Kavramlar)
-  PHASE_1A_ADAPT: { START: new Date('2025-06-17'), END: new Date('2025-07-21') },
-  // FAZ 1B: TYT Yoğunlaşma (Tüm TYT Konularının Sistemli Taraması)
-  PHASE_1B_INTENSE_TYT: { START: new Date('2025-07-22'), END: new Date('2025-08-25') },
-  // FAZ 1C: TYT & 11. Sınıf AYT Sentezi (TYT Denemeleri ve 11. Sınıf Tekrarı)
+  // FAZ 1A: Matematik Resüsitasyonu & Temel Alışkanlıklar (İlk 4 Hafta)
+  PHASE_1A_REHAB: { START: new Date('2025-06-17'), END: new Date('2025-07-14') },
+  // FAZ 1B: TYT İlerleme ve Oturtma (Son 6 Hafta)
+  PHASE_1B_TYT_BUILD: { START: new Date('2025-07-15'), END: new Date('2025-08-25') },
+  // FAZ 1C: Sentez ve Okula Hazırlık (Okul Öncesi Son 2 Hafta)
   PHASE_1C_SYNTHESIS: { START: new Date('2025-08-26'), END: new Date('2025-09-15') },
 
   // =========================================================================
-  // FAZ 2: OKUL DÖNEMİ - "İNŞA OPERASYONU" (AYT AĞIRLIKLI)
+  // FAZ 2: OKUL DÖNEMİ - "HİBRİT SAVAŞ OPERASYONU" (TYT & AYT)
   // =========================================================================
-  // FAZ 2A: Okul & AYT Dengesi (12. Sınıf Konuları ve TYT Pratiği)
-  PHASE_2A_BALANCE: { START: new Date('2025-09-16'), END: new Date('2026-01-24') }, // Sömestr tatili başlangıcı
-  // FAZ 2B: AYT Ağırlık & Optimizasyon (AYT'de Derinleşme)
-  PHASE_2B_AYT_FOCUS: { START: new Date('2026-01-25'), END: new Date('2026-03-15') },
+  // FAZ 2A: Hibrit Savaş - Okul & YKS (12. Sınıf 1. Dönem)
+  PHASE_2A_HYBRID: { START: new Date('2025-09-16'), END: new Date('2026-01-24') },
+  // FAZ 2B: AYT Yoğunlaşma (Sömestr Tatili)
+  PHASE_2B_AYT_FOCUS: { START: new Date('2026-01-25'), END: new Date('2026-02-08') },
   
   // =========================================================================
-  // FAZ 3: SINAV KAMPI - "SENTEZ OPERASYONU" (DENEME ODAKLI)
+  // FAZ 3: SINAV KAMPI - "DENEME OPERASYONU"
   // =========================================================================
-  // FAZ 3A: Deneme Maratonu & Eksik Giderme
-  PHASE_3A_MARATHON: { START: new Date('2026-03-16'), END: new Date('2026-04-30') },
-  // FAZ 3B: Zirve Performans & Zihinsel Hazırlık
+  // FAZ 3A: Deneme Modu (2. Dönem başı - 1 Mayıs)
+  PHASE_3A_TRIAL_MODE: { START: new Date('2026-02-09'), END: new Date('2026-04-30') },
+  // FAZ 3B: Zirve Performans & Zihinsel Hazırlık (Sınava kadar)
   PHASE_3B_PEAK_PERFORMANCE: { START: new Date('2026-05-01'), END: new Date('2026-06-19') }, // Sınav tarihini varsayıyoruz
 
   // =========================================================================
@@ -43,20 +42,20 @@ export const useSeason = () => {
   useEffect(() => {
     const now = new Date();
 
-    if (now >= SEASONS.PHASE_1A_ADAPT.START && now <= SEASONS.PHASE_1A_ADAPT.END) {
-      setSeasonInfo({ key: 'phase1a_adapt', name: 'FAZ 1A: Adaptasyon & TYT Başlangıç' });
-    } else if (now >= SEASONS.PHASE_1B_INTENSE_TYT.START && now <= SEASONS.PHASE_1B_INTENSE_TYT.END) {
-      setSeasonInfo({ key: 'phase1b_intense_tyt', name: 'FAZ 1B: TYT Yoğunlaşma' });
+    if (now >= SEASONS.PHASE_1A_REHAB.START && now <= SEASONS.PHASE_1A_REHAB.END) {
+      setSeasonInfo({ key: 'phase1a_rehab', name: 'FAZ 1A: Matematik Resüsitasyonu' });
+    } else if (now >= SEASONS.PHASE_1B_TYT_BUILD.START && now <= SEASONS.PHASE_1B_TYT_BUILD.END) {
+      setSeasonInfo({ key: 'phase1b_tyt_build', name: 'FAZ 1B: TYT İlerleme ve Oturtma' });
     } else if (now >= SEASONS.PHASE_1C_SYNTHESIS.START && now <= SEASONS.PHASE_1C_SYNTHESIS.END) {
-        setSeasonInfo({ key: 'phase1c_synthesis', name: 'FAZ 1C: TYT & 11. Sınıf AYT Sentezi' });
-    } else if (now >= SEASONS.PHASE_2A_BALANCE.START && now <= SEASONS.PHASE_2A_BALANCE.END) {
-      setSeasonInfo({ key: 'phase2a_balance', name: 'FAZ 2A: Okul & AYT Dengesi' });
+      setSeasonInfo({ key: 'phase1c_synthesis', name: 'FAZ 1C: Sentez ve Okula Hazırlık' });
+    } else if (now >= SEASONS.PHASE_2A_HYBRID.START && now <= SEASONS.PHASE_2A_HYBRID.END) {
+      setSeasonInfo({ key: 'phase2a_hybrid', name: 'FAZ 2A: Hibrit Savaş - Okul & YKS' });
     } else if (now >= SEASONS.PHASE_2B_AYT_FOCUS.START && now <= SEASONS.PHASE_2B_AYT_FOCUS.END) {
-        setSeasonInfo({ key: 'phase2b_ayt_focus', name: 'FAZ 2B: AYT Ağırlık & Optimizasyon' });
-    } else if (now >= SEASONS.PHASE_3A_MARATHON.START && now <= SEASONS.PHASE_3A_MARATHON.END) {
-      setSeasonInfo({ key: 'phase3a_marathon', name: 'FAZ 3A: Deneme Maratonu & Eksik Giderme' });
+      setSeasonInfo({ key: 'phase2b_ayt_focus', name: 'FAZ 2B: AYT Yoğunlaşma' });
+    } else if (now >= SEASONS.PHASE_3A_TRIAL_MODE.START && now <= SEASONS.PHASE_3A_TRIAL_MODE.END) {
+      setSeasonInfo({ key: 'phase3a_trial_mode', name: 'FAZ 3A: Deneme Modu' });
     } else if (now >= SEASONS.PHASE_3B_PEAK_PERFORMANCE.START && now <= SEASONS.PHASE_3B_PEAK_PERFORMANCE.END) {
-      setSeasonInfo({ key: 'phase3b_peak_performance', name: 'FAZ 3B: Zirve Performans & Zihinsel Hazırlık' });
+      setSeasonInfo({ key: 'phase3b_peak_performance', name: 'FAZ 3B: Zirve Performans' });
     } else if (now >= SEASONS.PHASE_4_POST_YKS.START && now <= SEASONS.PHASE_4_POST_YKS.END) {
       setSeasonInfo({ key: 'phase4_post_yks', name: 'FAZ 4: Değerlendirme & Yenilenme' });
     } else {
