@@ -1,5 +1,8 @@
+// App.js --- YENİ HALİ
+
 import { ThemeProvider } from 'styled-components';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// DEĞİŞECEK SATIR BURASI: BrowserRouter yerine HashRouter import ediyoruz.
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { GlobalStyle } from './styles/GlobalStyle';
 import { theme } from './styles/theme';
 import { UserProgressProvider } from './contexts/UserProgressContext';
@@ -28,6 +31,7 @@ const AppContent = () => {
 
 function App() {
   return (
+    // Bu kısma dokunmuyoruz çünkü yukarıda "HashRouter as Router" dedik.
     <Router>
       <ThemeProvider theme={theme}>
         <UserProgressProvider>
