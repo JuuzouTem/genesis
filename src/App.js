@@ -1,28 +1,52 @@
-// App.js --- YENİ HALİ
-
 import { ThemeProvider } from 'styled-components';
-// DEĞİŞECEK SATIR BURASI: BrowserRouter yerine HashRouter import ediyoruz.
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { GlobalStyle } from './styles/GlobalStyle';
 import { theme } from './styles/theme';
-import { UserProgressProvider } from './contexts/UserProgressContext';
+import styled from 'styled-components';
+
+// Context Providers
+import { AuthProvider } from './contexts/AuthContext';
+import { UserProgressProvider, useUserProgress } from './contexts/UserProgressContext';
+
+// Bileşenler ve Sayfalar
 import Navbar from './components/layout/Navbar';
 import DashboardPage from './pages/DashboardPage';
 import LabPage from './pages/LabPage';
-import Notification from './components/common/Notification';
-import { useUserProgress } from './contexts/UserProgressContext';
 import AchievementsPage from './pages/AchievementsPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import Notification from './components/common/Notification';
+import ProtectedRoute from './components/common/ProtectedRoute';
 
-// Notification'ı context'e erişebilmesi için ayrı bir bileşene taşıdık
+const LoadingScreen = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  background-color: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.primary};
+  font-family: ${({ theme }) => theme.fonts.headings};
+  font-size: 2rem;
+`;
+
 const AppContent = () => {
-  const { notification } = useUserProgress();
+  const { notification, loading } = useUserProgress();
+  
+  if (loading) {
+      return <LoadingScreen>Sistem Başlatılıyor...</LoadingScreen>;
+  }
+  
   return (
     <>
       <Navbar />
       <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/lab" element={<LabPage />} />
-        <Route path="/achievements" element={<AchievementsPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        
+        <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/lab" element={<ProtectedRoute><LabPage /></ProtectedRoute>} />
+        <Route path="/achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
       </Routes>
       <Notification message={notification} />
     </>
@@ -31,13 +55,14 @@ const AppContent = () => {
 
 function App() {
   return (
-    // Bu kısma dokunmuyoruz çünkü yukarıda "HashRouter as Router" dedik.
     <Router>
       <ThemeProvider theme={theme}>
-        <UserProgressProvider>
-          <GlobalStyle />
-          <AppContent />
-        </UserProgressProvider>
+        <AuthProvider>
+          <UserProgressProvider>
+            <GlobalStyle />
+            <AppContent />
+          </UserProgressProvider>
+        </AuthProvider>
       </ThemeProvider>
     </Router>
   );

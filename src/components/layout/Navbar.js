@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useAuth } from '../../contexts/AuthContext';
 
 const NavContainer = styled.nav`
   display: flex;
-  justify-content: space-between; /* İkonu sağa yaslamak için */
+  justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
   background-color: ${({ theme }) => theme.colors.surface};
-  position: relative; /* Menünün konumlanması için */
+  position: relative;
+  z-index: 100;
 `;
 
-// Masaüstünde görünecek linklerin kapsayıcısı
 const NavLinks = styled.div`
   display: flex;
   gap: 2rem;
+  align-items: center;
   
   @media (max-width: 768px) {
-    display: none; // Mobil görünümde bu linkleri gizle
+    display: none;
   }
 `;
 
@@ -40,13 +42,28 @@ const StyledNavLink = styled(NavLink)`
   }
 `;
 
-// Mobil görünümde görünecek olan hamburger ikonu
+const LogoutButton = styled.button`
+  background: none;
+  border: none;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  text-decoration: none;
+  font-family: ${({ theme }) => theme.fonts.headings};
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.accent};
+  }
+`;
+
 const HamburgerIcon = styled.div`
-  display: none; // Varsayılan olarak gizli
+  display: none;
   cursor: pointer;
   
   @media (max-width: 768px) {
-    display: block; // Mobil görünümde göster
+    display: block;
   }
 
   div {
@@ -58,7 +75,6 @@ const HamburgerIcon = styled.div`
   }
 `;
 
-// Hamburger menüye tıklandığında açılacak olan menü
 const MobileMenu = styled.div`
   display: flex;
   flex-direction: column;
@@ -71,46 +87,65 @@ const MobileMenu = styled.div`
   width: 100%;
   padding: 2rem 0;
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-  transform: translateY(${({ isOpen }) => (isOpen ? '0' : '-150%')}); /* Açık/Kapalı animasyonu */
+  transform: translateY(${({ isOpen }) => (isOpen ? '0' : '-150%')});
   transition: transform 0.3s ease-in-out;
-  z-index: 100;
 `;
 
 function Navbar() {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!isMobileMenuOpen);
+  const toggleMobileMenu = () => setMobileMenuOpen(!isMobileMenuOpen);
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const handleLogout = async () => {
+    closeMobileMenu();
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error("Çıkış yapılamadı:", error);
+    }
   };
-  
-  const closeMobileMenu = () => {
-    setMobileMenuOpen(false);
-  }
+
+  const renderLinks = (isMobile = false) => {
+    const clickHandler = isMobile ? closeMobileMenu : undefined;
+    const logoutHandler = isMobile ? handleLogout : handleLogout;
+    
+    if (currentUser) {
+      return (
+        <>
+          <StyledNavLink to="/" end onClick={clickHandler}>KONTROL PANELİ</StyledNavLink>
+          <StyledNavLink to="/lab" onClick={clickHandler}>LABORATUVAR</StyledNavLink>
+          <StyledNavLink to="/achievements" onClick={clickHandler}>KİLOMETRETAŞLARI</StyledNavLink>
+          <LogoutButton onClick={logoutHandler}>ÇIKIŞ YAP</LogoutButton>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <StyledNavLink to="/login" onClick={clickHandler}>GİRİŞ YAP</StyledNavLink>
+          <StyledNavLink to="/signup" onClick={clickHandler}>KAYIT OL</StyledNavLink>
+        </>
+      );
+    }
+  };
 
   return (
     <NavContainer>
-      {/* Logo veya Proje Adı (İsteğe bağlı, sola yaslanacak) */}
       <StyledNavLink to="/" onClick={closeMobileMenu}>Proje: Gen-esis</StyledNavLink>
       
-      {/* Masaüstü Linkleri */}
       <NavLinks>
-        <StyledNavLink to="/" end>KONTROL PANELİ</StyledNavLink>
-        <StyledNavLink to="/lab">LABORATUVAR</StyledNavLink>
-        <StyledNavLink to="/achievements">KİLOMETRETAŞLARI</StyledNavLink>
+        {renderLinks()}
       </NavLinks>
 
-      {/* Hamburger Menü İkonu */}
       <HamburgerIcon onClick={toggleMobileMenu}>
-        <div />
-        <div />
-        <div />
+        <div /><div /><div />
       </HamburgerIcon>
 
-      {/* Mobil Menü (Açılır kapanır) */}
       <MobileMenu isOpen={isMobileMenuOpen}>
-        <StyledNavLink to="/" end onClick={closeMobileMenu}>KONTROL PANELİ</StyledNavLink>
-        <StyledNavLink to="/lab" onClick={closeMobileMenu}>LABORATUVAR</StyledNavLink>
-        <StyledNavLink to="/achievements" onClick={closeMobileMenu}>KİLOMETRETAŞLARI</StyledNavLink>
+        {renderLinks(true)}
       </MobileMenu>
     </NavContainer>
   );
