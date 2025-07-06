@@ -39,7 +39,7 @@ const Header = styled.header`
 
 const StreakCounter = styled.div`
   position: absolute;
-  top: -1rem;
+  top: -.2rem;
   right: 2.5rem;
   font-size: 1.5rem;
   font-family: ${({ theme }) => theme.fonts.headings};
