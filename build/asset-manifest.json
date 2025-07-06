@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/genesis/static/js/main.3c6c8429.js",
+    "main.js": "/genesis/static/js/main.1064741c.js",
     "index.html": "/genesis/index.html",
-    "main.3c6c8429.js.map": "/genesis/static/js/main.3c6c8429.js.map"
+    "main.1064741c.js.map": "/genesis/static/js/main.1064741c.js.map"
   },
   "entrypoints": [
-    "static/js/main.3c6c8429.js"
+    "static/js/main.1064741c.js"
   ]
 }
