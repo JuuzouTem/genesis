@@ -11,6 +11,7 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
 
 const DashboardWrapper = styled.div`
   position: relative;
+  padding-top: 1.2rem;
 `;
 
 const DashboardContainer = styled.div`
