@@ -11,7 +11,6 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
 
 const DashboardWrapper = styled.div`
   position: relative;
-  top: 1.2rem;
 `;
 
 const DashboardContainer = styled.div`
@@ -39,7 +38,7 @@ const Header = styled.header`
 
 const StreakCounter = styled.div`
   position: absolute;
-  top: -1rem;
+  top: 0.2rem;
   right: 18.5rem;
   font-size: 1.5rem;
   font-family: ${({ theme }) => theme.fonts.headings};
