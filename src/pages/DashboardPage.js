@@ -17,7 +17,7 @@ const DashboardWrapper = styled.div`
 const DashboardContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 4.5rem 1.5rem 1.5rem 1.5rem;
+  padding: 5rem 2rem 2rem 2rem;
   
   /* EKLENECEK YENİ SATIRLAR */
   display: flex;
@@ -39,8 +39,8 @@ const Header = styled.header`
 
 const StreakCounter = styled.div`
   position: absolute;
-  top: 0rem;
-  right: 2.5rem;
+  top: -1rem;
+  right: 18.5rem;
   font-size: 1.5rem;
   font-family: ${({ theme }) => theme.fonts.headings};
   color: ${({ theme }) => theme.colors.secondary};
