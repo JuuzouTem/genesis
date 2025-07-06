@@ -17,7 +17,7 @@ const DashboardWrapper = styled.div`
 const DashboardContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 5rem 2rem 2rem 2rem;
+  padding: 4.5rem 1.5rem 1.5rem 1.5rem;
   
   /* EKLENECEK YENİ SATIRLAR */
   display: flex;
